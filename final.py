@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse
 from datetime import datetime
-import sys
-import openpyxl
 import pandas as pd
 
 
@@ -26,7 +23,15 @@ def get_first_and_last_id(df):
 
 def get_devolutions(df):
     df = df.rename(
-        {"Descripción": "order_id", "Total": "pago", "Local": "restaurant_name", "Fecha": "fecha", "Tipo": "estado"}, axis="columns")
+        {
+            "Descripción": "order_id",
+            "Total": "pago",
+            "Local": "restaurant_name", 
+            "Fecha": "fecha",
+            "Tipo": "estado"
+        },
+        axis="columns"
+    )
 
     # Filter devolutions
     devolutions = df.query(
@@ -50,23 +55,47 @@ def get_devolutions(df):
     devolutions["descuento asumido peya"] = ""
 
     # Reorder columns
-    devolutions = devolutions[["order_id", "restaurant_id", "ciudad", "restaurant_name", "fecha", "hora", "estado", "metodo de pago",
-                               "cooking time", "valor", "costo envío", "descuento asumido partner", "descuento asumido peya", "pago"]]
+    devolutions = devolutions[
+        [
+            "order_id",
+            "restaurant_id",
+            "ciudad",
+            "restaurant_name",
+            "fecha",
+            "hora",
+            "estado",
+            "metodo de pago",
+            "cooking time",
+            "valor",
+            "costo envío",
+            "descuento asumido partner",
+            "descuento asumido peya", "pago"
+        ]
+    ]
 
     devolutions = devolutions.set_index("order_id")
-
     return devolutions
 
 
 def get_orders(df):
     df = df.query('Pago != "Paga en el local"')
-    df = df.rename({"ID": "order_id", "Local": "restaurant_name", "Pago": "metodo de pago", "Monto en productos": "valor",
-                    "Fecha del pedido": "fecha", "Estado del pago": "estado", "Total con propina": "pago", "Precio despacho": "costo envío"}, axis="columns")
+    df = df.rename(
+        {
+            "ID": "order_id",
+            "Local": "restaurant_name",
+            "Pago": "metodo de pago",
+            "Monto en productos": "valor",
+            "Fecha del pedido": "fecha",
+            "Estado del pago": "estado",
+            "Total con propina": "pago",
+            "Precio despacho": "costo envío"
+        },
+        axis="columns"
+    )
 
-    # CALCULAR VALOR A PAGAR: PAGO CON PROPINA - PROPINAS - DEVOLUCIONES
+    # CALCULAR VALOR A PAGAR: PAGO CON PROPINA - PROPINAS - DEVOLUCIONES
     dates = []
     times = []
-    status = []
     payment_methods = []
     for label, values in df.items():
         if label == "fecha":
@@ -92,8 +121,24 @@ def get_orders(df):
     df["descuento asumido peya"] = ""
     df["metodo de pago"] = payment_methods
 
-    df = df[["order_id", "restaurant_id", "ciudad", "restaurant_name", "fecha", "hora", "estado", "metodo de pago",
-             "cooking time", "valor", "costo envío", "descuento asumido partner", "descuento asumido peya", "pago"]]
+    df = df[
+        [
+            "order_id",
+            "restaurant_id",
+            "ciudad",
+            "restaurant_name",
+            "fecha",
+            "hora",
+            "estado",
+            "metodo de pago",
+            "cooking time",
+            "valor",
+            "costo envío",
+            "descuento asumido partner",
+            "descuento asumido peya",
+            "pago"
+        ]
+    ]
 
     df = df.set_index("order_id")
     return df
@@ -111,22 +156,42 @@ def main():
 
     # Read Excel or CSV file for charges file
     charges_df = pd.read_excel(
-        "cierre.xlsx", sheet_name="Cobros", parse_dates=True, usecols=["Descripción", "Tipo", "Total", "Local", "Fecha"])
+        "cierre.xlsx", sheet_name="Cobros", parse_dates=True,
+        usecols=["Descripción", "Tipo", "Total", "Local", "Fecha"])
     range_sheet = pd.read_excel(
-        "cierre.xlsx", sheet_name="Pagos", parse_dates=True, usecols=["Descripción"])
+        "cierre.xlsx", sheet_name="Pagos", parse_dates=True,
+        usecols=["Descripción"])
     # Get the first and last order id from payments sheet
     first, last = get_first_and_last_id(range_sheet)
 
     print("CHARGES COUNT:", len(charges_df))
 
     # Read Excel or CSV file for orders file
-    cols_to_use = ["ID", "Local", "Pago", "Estado del pago", "Fecha del pedido", "Monto en productos",
-                   "Total con propina", "Precio despacho"]
-    orders_df = pd.read_csv("pedidos.csv", encoding="utf-8",
-                            usecols=cols_to_use, parse_dates=True, infer_datetime_format=True)
+    cols_to_use = [
+        "ID",
+        "Local",
+        "Pago",
+        "Estado del pago",
+        "Fecha del pedido",
+        "Monto en productos",
+        "Total con propina",
+        "Precio despacho"
+    ]
+    orders_df = pd.read_csv(
+        "pedidos.csv",
+        encoding="utf-8",
+        usecols=cols_to_use,
+        parse_dates=True,
+        infer_datetime_format=True
+    )
 
-    # orders_df = pd.read_excel("pedidos.xlsx", encoding="utf-8",
-    #                           usecols=cols_to_use, parse_dates=True, infer_datetime_format=True)
+    # orders_df = pd.read_excel(
+    #     "pedidos.xlsx",
+    #     encoding="utf-8",
+    #     usecols=cols_to_use,
+    #     parse_dates=True,
+    #     infer_datetime_format=True
+    # )
 
     devolutions = get_devolutions(charges_df)
     print("DEVOLUTIONS COUNT:", len(devolutions.index))
