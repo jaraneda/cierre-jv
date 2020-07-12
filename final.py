@@ -26,7 +26,7 @@ def get_devolutions(df):
         {
             "Descripción": "order_id",
             "Total": "pago",
-            "Local": "restaurant_name", 
+            "Local": "restaurant_name",
             "Fecha": "fecha",
             "Tipo": "estado"
         },
