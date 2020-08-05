@@ -173,10 +173,10 @@ def main():
     '''Reads and process Excel and CSV file from Justo app to Excel for JV'''
     # Read Excel or CSV file for charges file
     charges_df = pd.read_excel(
-        "cierre.xlsx", sheet_name="Cobros", parse_dates=True,
+        "Cierre Juan Valdez.xlsx", sheet_name="Cobros", parse_dates=True,
         usecols=["Descripción", "Tipo", "Total", "Local", "Fecha"])
     range_sheet = pd.read_excel(
-        "cierre.xlsx", sheet_name="Pagos", parse_dates=True,
+        "Cierre Juan Valdez.xlsx", sheet_name="Pagos", parse_dates=True,
         usecols=["Descripción"])
     # Get the first and last order id from payments sheet
     first, last = get_first_and_last_id(range_sheet)
@@ -195,7 +195,7 @@ def main():
         "Precio despacho"
     ]
     orders_df = pd.read_csv(
-        "pedidos.csv",
+        "Pedidos.csv",
         encoding="utf-8",
         usecols=cols_to_use,
         parse_dates=True,
