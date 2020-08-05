@@ -4,24 +4,30 @@ from datetime import datetime
 import pandas as pd
 
 
-def get_dates_and_times(values):
+def get_dates_and_times(column):
+    '''Returns a tuple with dates and times extracted from a DF column'''
+
     dates = []
     times = []
-    for v in values:
-        dt = datetime.fromisoformat(v)
-        dates.append(dt.date().strftime("%Y-%m-%d"))
-        times.append(dt.time())
+    for value in column:
+        dta = datetime.fromisoformat(value)
+        dates.append(dta.date().strftime("%Y-%m-%d"))
+        times.append(dta.time())
 
     return (dates, times)
 
 
 def get_first_and_last_id(df):
+    '''Returns a tuple with the first and last order_id'''
+
     first = df["Descripción"][0][7:]
     last = df["Descripción"][len(df) - 1][7:]
     return (first, last)
 
 
 def get_devolutions(df):
+    '''Creates and returns a new DF containing devolutions'''
+
     df = df.rename(
         {
             "Descripción": "order_id",
@@ -69,7 +75,8 @@ def get_devolutions(df):
             "valor",
             "costo envío",
             "descuento asumido partner",
-            "descuento asumido peya", "pago"
+            "descuento asumido peya",
+            "pago"
         ]
     ]
 
@@ -78,6 +85,8 @@ def get_devolutions(df):
 
 
 def get_orders(df):
+    '''Creates and returns a new DF with the Orders data'''
+
     df = df.query('Pago != "Paga en el local"')
     df = df.rename(
         {
@@ -97,6 +106,8 @@ def get_orders(df):
     dates = []
     times = []
     payment_methods = []
+    store_names = []
+
     for label, values in df.items():
         if label == "fecha":
             dates, times = get_dates_and_times(values)
@@ -105,10 +116,19 @@ def get_orders(df):
             for v in values:
                 if v == "Webpay: Débito":
                     payment_methods.append("dc")
-                elif v == "Tarjeta de crédito" or v == "Webpay: Tarjeta de crédito":
+                elif v in ("Tarjeta de crédito", "Webpay: Tarjeta de crédito"):
                     payment_methods.append("cc")
                 else:
                     payment_methods.append(v)
+        # Change store names from Justo to JV names
+        elif label == "restaurant_name":
+            for name in values:
+                if "Regiones" in name:
+                    store_names.append("Alonso de Cordova")
+                elif name == "Chicureo" or name == "foodtruck maipu":
+                    store_names.append("Rosario Norte")
+                else:
+                    store_names.append(name)
 
     df["order_id"] = [v[1:].replace("-", "") for v in df["order_id"]]
     df["estado"] = ["CONFIRMED" for i in df["estado"]]
@@ -120,6 +140,7 @@ def get_orders(df):
     df["descuento asumido partner"] = ""
     df["descuento asumido peya"] = ""
     df["metodo de pago"] = payment_methods
+    df["restaurant_name"] = store_names
 
     df = df[
         [
@@ -129,10 +150,6 @@ def get_orders(df):
             "restaurant_name",
             "fecha",
             "hora",
-            "estado",
-            "metodo de pago",
-            "cooking time",
-            "valor",
             "costo envío",
             "descuento asumido partner",
             "descuento asumido peya",
@@ -153,7 +170,7 @@ def get_orders(df):
 
 
 def main():
-
+    '''Reads and process Excel and CSV file from Justo app to Excel for JV'''
     # Read Excel or CSV file for charges file
     charges_df = pd.read_excel(
         "cierre.xlsx", sheet_name="Cobros", parse_dates=True,
