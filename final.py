@@ -25,10 +25,10 @@ def get_first_and_last_id(df):
     return (first, last)
 
 
-def get_devolutions(df):
-    '''Creates and returns a new DF containing devolutions'''
+def rename_closure_cols(closure_df):
+    '''Returns a new closure DF with renamed columns'''
 
-    df = df.rename(
+    return closure_df.rename(
         {
             "Descripción": "order_id",
             "Total": "pago",
@@ -39,29 +39,18 @@ def get_devolutions(df):
         axis="columns"
     )
 
-    # Filter devolutions
-    devolutions = df.query(
-        'estado == "Devoluciones a clientes" or estado == "Propina para repartidores"')
 
-    # Get order_id
-    devolutions["order_id"] = [v[22:] if "Devolución de pedido" in v else v[36:]
-                               for v in devolutions["order_id"]]
-    # Make devolution amounts negative:
-    devolutions["pago"] = [int(v) * -1 for v in devolutions["pago"]]
-    dates, times = get_dates_and_times(devolutions["fecha"])
-    devolutions["fecha"] = dates
-    devolutions["hora"] = times
-    devolutions["restaurant_id"] = ""
-    devolutions["ciudad"] = ""
-    devolutions["cooking time"] = ""
-    devolutions["costo envío"] = ""
-    devolutions["metodo de pago"] = ""
-    devolutions["valor"] = ""
-    devolutions["descuento asumido partner"] = ""
-    devolutions["descuento asumido peya"] = ""
+def add_empty_cols(df):
+    df["restaurant_id"] = ""
+    df["ciudad"] = ""
+    df["cooking time"] = ""
+    df["descuento asumido partner"] = ""
+    df["descuento asumido peya"] = ""
+    return df
 
-    # Reorder columns
-    devolutions = devolutions[
+
+def reorder_final_df(df):
+    return df[
         [
             "order_id",
             "restaurant_id",
@@ -80,11 +69,69 @@ def get_devolutions(df):
         ]
     ]
 
+
+def get_devolutions(closure_df):
+    '''Creates and returns a new DF containing devolutions'''
+
+    df = rename_closure_cols(closure_df)
+
+    # Filter devolutions
+    devolutions = df.query(
+        'estado == "Devoluciones a clientes" or estado == "Propina para repartidores"')
+
+    # Get order_id
+    devolutions["order_id"] = [v[22:] if "Devolución de pedido" in v else v[36:]
+                               for v in devolutions["order_id"]]
+    # Make devolution amounts negative:
+    devolutions["pago"] = [int(v) * -1 for v in devolutions["pago"]]
+    dates, times = get_dates_and_times(devolutions["fecha"])
+    devolutions["fecha"] = dates
+    devolutions["hora"] = times
+    devolutions["costo envío"] = ""
+    devolutions["metodo de pago"] = ""
+    devolutions["valor"] = ""
+
+    devolutions = add_empty_cols(devolutions)
+    devolutions = reorder_final_df(devolutions)
+
     devolutions = devolutions.set_index("order_id")
     return devolutions
 
 
-def get_orders(df):
+def get_payments(closure_df):
+    '''Creates and returns a new DF with the Payments (Abonos) data'''
+    df = closure_df.query(
+        'Descripción.str.contains("Abono JUSTO")',
+        engine='python'
+    )
+    dates, times = get_dates_and_times(df["Fecha"])
+    order_ids = list(
+        map(lambda descripcion: descripcion[35:], df["Descripción"])
+    )
+
+    empty_list = ["" for i in order_ids]
+    df = pd.DataFrame({
+        "order_id": order_ids,
+        "restaurant_id": empty_list,
+        "ciudad": empty_list,
+        "restaurant_name": empty_list,
+        "fecha": dates,
+        "hora": times,
+        "estado": df["Descripción"],
+        "metodo de pago": empty_list,
+        "cooking_time": empty_list,
+        "valor": empty_list,
+        "costo_envío": empty_list,
+        "descuento asumido partner": empty_list,
+        "descuento asumido peya": empty_list,
+        "pago": df["Monto"]
+    })
+    df = df.set_index("order_id")
+
+    return df
+
+
+def get_orders(df, first_id, last_id):
     '''Creates and returns a new DF with the Orders data'''
 
     df = df.query('Pago != "Paga en el local"')
@@ -125,37 +172,27 @@ def get_orders(df):
             for name in values:
                 if "Regiones" in name:
                     store_names.append("Alonso de Cordova")
-                elif name == "Chicureo" or name == "foodtruck maipu":
+                elif "Chicureo" in name or "Food Truck Maipú" in name:
                     store_names.append("Rosario Norte")
                 else:
                     store_names.append(name)
+
+    # Check that all IDs in payments are included in orders
+    first_id = first_id.replace("#", "")
+    last_id = last_id.replace("#", "")
+    print("First:", first_id, "LAST:", last_id)
+    if last_id not in df["order_id"]:
+        print("Faltan ordenes en el archivo de pedidos:", last_id)
 
     df["order_id"] = [v[1:].replace("-", "") for v in df["order_id"]]
     df["estado"] = ["CONFIRMED" for i in df["estado"]]
     df["fecha"] = dates
     df["hora"] = times
-    df["restaurant_id"] = ""
-    df["ciudad"] = ""
-    df["cooking time"] = ""
-    df["descuento asumido partner"] = ""
-    df["descuento asumido peya"] = ""
     df["metodo de pago"] = payment_methods
     df["restaurant_name"] = store_names
 
-    df = df[
-        [
-            "order_id",
-            "restaurant_id",
-            "ciudad",
-            "restaurant_name",
-            "fecha",
-            "hora",
-            "costo envío",
-            "descuento asumido partner",
-            "descuento asumido peya",
-            "pago"
-        ]
-    ]
+    df = add_empty_cols(df)
+    df = reorder_final_df(df)
 
     df = df.set_index("order_id")
     return df
@@ -171,15 +208,17 @@ def get_orders(df):
 
 def main():
     '''Reads and process Excel and CSV file from Justo app to Excel for JV'''
+
     # Read Excel or CSV file for charges file
     charges_df = pd.read_excel(
         "Cierre Juan Valdez.xlsx", sheet_name="Cobros", parse_dates=True,
         usecols=["Descripción", "Tipo", "Total", "Local", "Fecha"])
+
     range_sheet = pd.read_excel(
         "Cierre Juan Valdez.xlsx", sheet_name="Pagos", parse_dates=True,
-        usecols=["Descripción"])
+        usecols=["Descripción", "Monto", "Local", "Fecha"])
     # Get the first and last order id from payments sheet
-    first, last = get_first_and_last_id(range_sheet)
+    first_id, last_id = get_first_and_last_id(range_sheet)
 
     print("CHARGES COUNT:", len(charges_df))
 
@@ -194,6 +233,7 @@ def main():
         "Total con propina",
         "Precio despacho"
     ]
+
     orders_df = pd.read_csv(
         "Pedidos.csv",
         encoding="utf-8",
@@ -201,6 +241,8 @@ def main():
         parse_dates=True,
         infer_datetime_format=True
     )
+
+    payments = get_payments(range_sheet)
 
     # orders_df = pd.read_excel(
     #     "pedidos.xlsx",
@@ -215,13 +257,13 @@ def main():
 
     # Filter orders to only include payed orders
     print("ORIGINAL ORDERS COUNT:", len(orders_df.index))
-    orders_df = orders_df[orders_df['ID'].between(first, last)]
+    orders_df = orders_df[orders_df['ID'].between(first_id, last_id)]
     print("FILTERED ORDERS COUNT:", len(orders_df.index))
 
-    orders = get_orders(orders_df)
+    orders = get_orders(orders_df, first_id, last_id)
     print("FINAL ORDERS COUNT:", len(orders.index))
 
-    merged_dfs = pd.concat([orders, devolutions])
+    merged_dfs = pd.concat([orders, devolutions, payments])
     merged_dfs.to_excel("cierre-JV.xlsx")
 
 
