@@ -1,165 +1,63 @@
 #!/usr/bin/env python3
-
-import argparse
-from datetime import datetime
-import sys
-import openpyxl
 import pandas as pd
-
-
-def get_dates_and_times(values):
-    dates = []
-    times = []
-    for v in values:
-        dt = datetime.fromisoformat(v)
-        dates.append(dt.date().strftime("%Y-%m-%d"))
-        times.append(dt.time())
-
-    return (dates, times)
-
-
-def get_first_and_last_id(df):
-    first = df["Descripción"][0][7:]
-    last = df["Descripción"][len(df) - 1][7:]
-    return (first, last)
-
-
-def get_devolutions(df):
-    df = df.rename(
-        {"Descripción": "order_id", "Total": "pago", "Local": "restaurant_name", "Fecha": "fecha", "Tipo": "estado"}, axis="columns")
-
-    # Filter devolutions
-    devolutions = df.query(
-        'estado == "Devoluciones a clientes" or estado == "Propina para repartidores"')
-
-    # Get order_id
-    devolutions["order_id"] = [v[22:] if "Devolución de pedido" in v else v[36:]
-                               for v in devolutions["order_id"]]
-    # Make devolution amounts negative:
-    devolutions["pago"] = [int(v) * -1 for v in devolutions["pago"]]
-    dates, times = get_dates_and_times(devolutions["fecha"])
-    devolutions["fecha"] = dates
-    devolutions["hora"] = times
-    devolutions["restaurant_id"] = ""
-    devolutions["ciudad"] = ""
-    devolutions["cooking time"] = ""
-    devolutions["costo envío"] = ""
-    devolutions["metodo de pago"] = ""
-    devolutions["valor"] = ""
-    devolutions["descuento asumido partner"] = ""
-    devolutions["descuento asumido peya"] = ""
-
-    # Reorder columns
-    devolutions = devolutions[["order_id", "restaurant_id", "ciudad", "restaurant_name", "fecha", "hora", "estado", "metodo de pago",
-                               "cooking time", "valor", "costo envío", "descuento asumido partner", "descuento asumido peya", "pago"]]
-
-    devolutions = devolutions.set_index("order_id")
-
-    return devolutions
-
-
-def get_orders(df):
-    df = df.query('Pago != "Paga en el local"')
-    df = df.rename({"ID": "order_id", "Local": "restaurant_name", "Pago": "metodo de pago", "Monto en productos": "valor",
-                    "Fecha del pedido": "fecha", "Estado del pago": "estado", "Total con propina": "pago", "Precio despacho": "costo envío"}, axis="columns")
-
-    # CALCULAR VALOR A PAGAR: PAGO CON PROPINA - PROPINAS - DEVOLUCIONES
-    dates = []
-    times = []
-    status = []
-    payment_methods = []
-    for label, values in df.items():
-        if label == "fecha":
-            dates, times = get_dates_and_times(values)
-
-        if label == "metodo de pago":
-            for v in values:
-                if v == "Webpay: Débito":
-                    payment_methods.append("dc")
-                elif v == "Tarjeta de crédito" or v == "Webpay: Tarjeta de crédito":
-                    payment_methods.append("cc")
-                else:
-                    payment_methods.append(v)
-
-    df["order_id"] = [v[1:].replace("-", "") for v in df["order_id"]]
-    df["estado"] = ["CONFIRMED" for i in df["estado"]]
-    df["fecha"] = dates
-    df["hora"] = times
-    df["restaurant_id"] = ""
-    df["ciudad"] = ""
-    df["cooking time"] = ""
-    df["descuento asumido partner"] = ""
-    df["descuento asumido peya"] = ""
-    df["metodo de pago"] = payment_methods
-
-    df = df[["order_id", "restaurant_id", "ciudad", "restaurant_name", "fecha", "hora", "estado", "metodo de pago",
-             "cooking time", "valor", "costo envío", "descuento asumido partner", "descuento asumido peya", "pago"]]
-
-    df = df.set_index("order_id")
-    return df
-
-
-# def get_tips(df):
-#     tips = df.query('propina != 0')
-#     # tips["tip"] = [i * -1 for i in tips["tip"]]
-#     del tips["pago"]
-#     tips = tips.rename({"tip": "pago"})
-#     return tips
+from helpers import get_first_and_last_id
+from closure import get_devolutions, get_orders, get_payments
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Genera Excel para Juan Valdez.')
-    parser.add_argument('charges_file', type=str,
-                        help='Nombre archivo de cierro/cobros archivo incluyendo extensión')
-    parser.add_argument('orders_file', type=str,
-                        help='Nombre archivo de pedidos')
-
-    args = parser.parse_args()
+    '''Reads and process Excel and CSV file from Justo app to Excel for JV'''
 
     # Read Excel or CSV file for charges file
-    if ".xl" in args.charges_file:
-        charges_df = pd.read_excel(
-            args.charges_file, sheet_name="Cobros", parse_dates=True, usecols=["Descripción", "Tipo", "Total", "Local", "Fecha"])
-        range_sheet = pd.read_excel(
-            args.charges_file, sheet_name="Pagos", parse_dates=True, usecols=["Descripción"])
-        # Get the first and last order id from payments sheet
-        first, last = get_first_and_last_id(range_sheet)
-    elif ".csv" in args.charges_file:
-        charges_df = pd.read_csv(
-            args.charges_file, encoding="utf-8", parse_dates=True, infer_datetime_format=True)
-    else:
-        print(
-            "Formato de archivo inválido: El archivo de cierre/cobros debe ser Excel o CSV")
-        sys.exit(0)
+    charges_df = pd.read_excel(
+        "Cierre Juan Valdez.xlsx", sheet_name="Cobros", parse_dates=True,
+        usecols=["Descripción", "Tipo", "Total", "Local", "Fecha"])
+
+    range_sheet = pd.read_excel(
+        "Cierre Juan Valdez.xlsx", sheet_name="Pagos", parse_dates=True,
+        usecols=["Descripción", "Monto", "Local", "Fecha"])
+    # Get the first and last order id from payments sheet
+    first_id, last_id = get_first_and_last_id(range_sheet)
 
     print("CHARGES COUNT:", len(charges_df))
 
     # Read Excel or CSV file for orders file
-    cols_to_use = ["ID", "Local", "Pago", "Estado del pago", "Fecha del pedido", "Monto en productos",
-                   "Total con propina", "Precio despacho"]
-    if ".xl" in args.orders_file:
-        orders_df = pd.read_excel(
-            args.orders_file, usecols=cols_to_use, parse_dates=True)
-    elif ".csv" in args.orders_file:
-        orders_df = pd.read_csv(args.orders_file, encoding="utf-8",
-                                usecols=cols_to_use, parse_dates=True, infer_datetime_format=True)
-    else:
-        print("Formato de archivo inválido: El archivo de pedidos debe ser Excel o CSV")
-        sys.exit(0)
+    cols_to_use = [
+        "ID",
+        "Local",
+        "Pago",
+        "Estado del pago",
+        "Fecha del pedido",
+        "Monto en productos",
+        "Total con propina",
+        "Precio despacho"
+    ]
+
+    orders_df = pd.read_csv(
+        "Pedidos.csv",
+        encoding="utf-8",
+        usecols=cols_to_use,
+        parse_dates=True,
+        infer_datetime_format=True
+    )
+
+    payments = get_payments(range_sheet)
+
+    # orders_df = pd.read_excel(
+    #     "pedidos.xlsx",
+    #     encoding="utf-8",
+    #     usecols=cols_to_use,
+    #     parse_dates=True,
+    #     infer_datetime_format=True
+    # )
 
     devolutions = get_devolutions(charges_df)
-    print("DEVOLUTIONS COUNT:", len(devolutions.index))
 
     # Filter orders to only include payed orders
-    print("ORIGINAL ORDERS COUNT:", len(orders_df.index))
-    orders_df = orders_df[orders_df['ID'].between(first, last)]
-    print("FILTERED ORDERS COUNT:", len(orders_df.index))
+    orders_df = orders_df[orders_df['ID'].between(first_id, last_id)]
 
-    orders = get_orders(orders_df)
-    print("FINAL ORDERS COUNT:", len(orders.index))
+    orders = get_orders(orders_df, first_id, last_id)
 
-    merged_dfs = pd.concat([orders, devolutions])
+    merged_dfs = pd.concat([orders, devolutions, payments])
     merged_dfs.to_excel("cierre-JV.xlsx")
 
 
