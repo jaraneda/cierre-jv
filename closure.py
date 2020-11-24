@@ -23,8 +23,7 @@ def get_devolutions(closure_df):
     devolutions["costo envío"] = ""
     devolutions["metodo de pago"] = ""
     devolutions["valor"] = ""
-    devolutions["restaurant_name"] = helpers.replace_store_name(
-        devolutions["restaurant_name"])
+    devolutions["restaurant_name"] = helpers.replace_store_name(devolutions["restaurant_name"])
 
     devolutions = helpers.add_empty_cols(devolutions)
     devolutions = helpers.reorder_final_df(devolutions)
@@ -41,7 +40,7 @@ def get_payments(closure_df):
     )
     dates, times = helpers.get_dates_and_times(df["Fecha"])
     order_ids = list(
-        map(lambda descripcion: descripcion[35:], df["Descripción"])
+        map(lambda descripcion: descripcion.split("#")[1], df["Descripción"])
     )
 
     empty_list = ["" for i in order_ids]
@@ -49,14 +48,14 @@ def get_payments(closure_df):
         "order_id": order_ids,
         "restaurant_id": empty_list,
         "ciudad": empty_list,
-        "restaurant_name": empty_list,
+        "restaurant_name": df["Local"],
         "fecha": dates,
         "hora": times,
         "estado": df["Descripción"],
         "metodo de pago": empty_list,
-        "cooking_time": empty_list,
+        "cooking time": empty_list,
         "valor": empty_list,
-        "costo_envío": empty_list,
+        "costo envío": empty_list,
         "descuento asumido partner": empty_list,
         "descuento asumido peya": empty_list,
         "pago": df["Monto"]
@@ -65,34 +64,25 @@ def get_payments(closure_df):
 
     return df
 
-
-def get_orders(df, first_id, last_id):
+def get_orders(df):
     '''Creates and returns a new DF with the Orders data'''
 
     df = df.query('Pago != "Paga en el local"')
     df = df.rename(
         {
             "ID": "order_id",
-            "Local": "restaurant_name",
             "Pago": "metodo de pago",
             "Monto en productos": "valor",
-            "Fecha del pedido": "fecha",
             "Estado del pago": "estado",
-            "Total con propina": "pago",
             "Precio despacho": "costo envío"
         },
         axis="columns"
     )
-
+    
     # CALCULAR VALOR A PAGAR: PAGO CON PROPINA - PROPINAS - DEVOLUCIONES
-    dates = []
-    times = []
     payment_methods = []
 
     for label, values in df.items():
-        if label == "fecha":
-            dates, times = helpers.get_dates_and_times(values)
-
         if label == "metodo de pago":
             for v in values:
                 if v == "Webpay: Débito":
@@ -101,26 +91,31 @@ def get_orders(df, first_id, last_id):
                     payment_methods.append("cc")
                 else:
                     payment_methods.append(v)
-        # Change store names from Justo to JV names
-        elif label == "restaurant_name":
-            store_names = helpers.replace_store_name(df["restaurant_name"])
-
-    # Check that all IDs in payments are included in orders
-    # first_id = first_id.replace("#", "")
-    # last_id = last_id.replace("#", "")
-    # print("First:", first_id, "LAST:", last_id)
-    # if last_id not in df["order_id"]:
-    #     print("Faltan ordenes en el archivo de pedidos:", last_id)
 
     df["order_id"] = [v[1:].replace("-", "") for v in df["order_id"]]
     df["estado"] = ["CONFIRMED" for i in df["estado"]]
-    df["fecha"] = dates
-    df["hora"] = times
     df["metodo de pago"] = payment_methods
-    df["restaurant_name"] = store_names
-
-    df = helpers.add_empty_cols(df)
-    df = helpers.reorder_final_df(df)
 
     df = df.set_index("order_id")
+
+    return df
+
+def get_payouts(payouts):
+    '''Creates and returns a new DF with the Payments (Abonos) data'''
+    df = payouts
+    dates, times = helpers.get_dates_and_times(df["Fecha"])
+    order_ids = list(
+        map(lambda descripcion: descripcion.split("#")[1], df["Descripción"])
+    )
+
+    df = pd.DataFrame({
+        "order_id": [value.replace("-", "") for value in order_ids],
+        "restaurant_name": df["Local"],
+        "fecha": dates,
+        "hora": times,
+        #"estado": df["Descripción"],
+        "pago": df["Monto"]
+    })
+    df = df.set_index("order_id")
+
     return df

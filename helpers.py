@@ -1,5 +1,5 @@
+from os import path
 from datetime import datetime
-
 
 def get_dates_and_times(column):
     '''Returns a tuple with dates and times extracted from a DF column'''
@@ -81,3 +81,6 @@ def replace_store_name(store_col):
             store_names.append(name)
 
     return store_names
+
+def existsFile(filename):
+    return path.isfile(filename)
