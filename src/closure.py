@@ -1,7 +1,6 @@
 import pandas as pd
 import helpers
 
-
 def get_devolutions(closure_df):
     '''Creates and returns a new DF containing devolutions'''
 
