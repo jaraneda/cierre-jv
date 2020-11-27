@@ -21,3 +21,6 @@ Una vez tengamos pipenv instalado, procedemos a instalar los paquetes requeridos
 Activar virtualenv en el proyecto:
 
 `pipenv shell`
+
+Ejecutar el programa
+`python src/main.py`
