@@ -48,7 +48,7 @@ def get_payments(closure_df):
         "order_id": order_ids,
         "restaurant_id": empty_list,
         "ciudad": empty_list,
-        "restaurant_name": df["Local"],
+        "restaurant_name": helpers.replace_store_name(df["Local"]),
         "fecha": dates,
         "hora": times,
         "estado": df["Descripción"],
@@ -110,7 +110,7 @@ def get_payouts(payouts):
 
     df = pd.DataFrame({
         "order_id": [value.replace("-", "") for value in order_ids],
-        "restaurant_name": df["Local"],
+        "restaurant_name": helpers.replace_store_name(df["Local"]),
         "fecha": dates,
         "hora": times,
         #"estado": df["Descripción"],
