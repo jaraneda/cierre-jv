@@ -1,9 +1,9 @@
-# Script to output JV payments/orders Excel
+# Cierre semanal para Juan Valdez
 
 # Descripción
 
-Este escript es utilizado para dejar los cierres semanales de la tienda 'Juan Valdez' Chile.
-Este cierres pasa por un preprocesamiento y luego es dejado en un FTP definido por su proveedor de servicios Falabella.
+Este script es utilizado para dejar los cierres semanales de la tienda 'Juan Valdez' Chile.
+Este cierre semanal pasa por un preprocesamiento y luego es dejado en un FTP definido por su proveedor de servicios Falabella.
 
 # Instalación y Mantención
 
