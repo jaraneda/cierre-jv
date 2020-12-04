@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+from datetime import datetime
 import pandas as pd
 from helpers import get_first_and_last_id, reorder_final_df, existsFile
 from closure import get_devolutions, get_orders, get_orders, get_payouts
@@ -60,7 +61,7 @@ def main():
 
     merged_dfs = orders.merge(payouts, how="outer",  left_index=True, right_index=True)
     merged_dfs = pd.concat([devolutions, merged_dfs])
-    merged_dfs.to_excel("cierre-JV.xlsx")
+    merged_dfs.to_excel(datetime.today().strftime('%Y-%m-%d') + "-JUSTO.xlsx")
 
 
 if __name__ == "__main__":
