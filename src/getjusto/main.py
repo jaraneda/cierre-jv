@@ -7,23 +7,21 @@ class Api:
     def __init__(self, API_KEY):
         self.API_KEY = API_KEY
         
-    def get(self, url, params):
+    def get(self, url, data):
         headers = {"Authorization": "Bearer " + self.API_KEY}
 
-        return requests.get(url=url, params=params, headers=headers)
+        return requests.get(url=url, data=data, headers=headers)
 
-    def orders(self):
+    def orders(self, fromDate, toDate):
         url = 'https://api.getjusto.com/api/v1/orders'
 
+        print(fromDate)
+        print(toDate)
         params = {
-        "fromDate": "2020-10-12T03:00:00.000Z",
-        "toDate": "2020-10-19T03:00:00.000Z",
+        "fromDate": fromDate,
+        "toDate": toDate,
         "includeNotPaid": "false",
         "useDeliverAt": "false"
         }
 
-        request = self.get(url, params)
-
-        print(request.status_code)
-        print(request.text)
-        print(request.json())
+        return self.get(url, params)

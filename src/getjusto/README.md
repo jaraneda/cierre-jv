@@ -2,6 +2,6 @@
 
     import getjusto
 
-    getjusto = getjusto.Api(API_KEY)
+    justo = getjusto.Api(API_KEY)
 
-    getjusto.orders()
+    justo.orders()
