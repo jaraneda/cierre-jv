@@ -2,8 +2,7 @@
 # -*- coding: UTF-8 -*-
 import pandas as pd
 from helpers import get_first_and_last_id, reorder_final_df, existsFile
-from closure import get_devolutions, get_orders, get_payments, get_orders, get_payouts
-
+from closure import get_devolutions, get_orders, get_orders, get_payouts
 
 def main():
     '''Reads and process Excel and CSV file from Justo app to Excel for JV'''
@@ -49,8 +48,6 @@ def main():
         parse_dates=True,
         infer_datetime_format=True
     )
-
-    payments = get_payments(payouts_sheet)
 
     devolutions = get_devolutions(charges_df)
 
