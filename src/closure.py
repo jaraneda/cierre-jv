@@ -7,8 +7,7 @@ def get_devolutions(closure_df):
     df = helpers.rename_closure_cols(closure_df)
 
     # Filter devolutions
-    devolutions = df.query(
-        'estado == "Devoluciones a clientes" or estado == "Propina para repartidores"')
+    devolutions = df.query('estado == "Devoluciones a clientes"')
 
     # Get order_id
     devolutions["order_id"] = [v[22:]
@@ -38,9 +37,7 @@ def get_payments(closure_df):
         engine='python'
     )
     dates, times = helpers.get_dates_and_times(df["Fecha"])
-    order_ids = list(
-        map(lambda descripcion: descripcion.split("#")[1], df["Descripción"])
-    )
+    order_ids = helpers.get_order_ids_from_description(df["Descripción"])
 
     empty_list = ["" for i in order_ids]
     df = pd.DataFrame({
@@ -77,7 +74,7 @@ def get_orders(df):
         },
         axis="columns"
     )
-    
+
     # CALCULAR VALOR A PAGAR: PAGO CON PROPINA - PROPINAS - DEVOLUCIONES
     payment_methods = []
 
@@ -99,13 +96,12 @@ def get_orders(df):
 
     return df
 
-def get_payouts(payouts):
+def get_payouts(payouts, tips):
     '''Creates and returns a new DF with the Payments (Abonos) data'''
     df = payouts
     dates, times = helpers.get_dates_and_times(df["Fecha"])
-    order_ids = list(
-        map(lambda descripcion: descripcion.split("#")[1], df["Descripción"])
-    )
+    order_ids = helpers.get_order_ids_from_description(df["Descripción"])
+    amounts = helpers.substract_tips(df, tips)
 
     df = pd.DataFrame({
         "order_id": [value.replace("-", "") for value in order_ids],
@@ -113,8 +109,10 @@ def get_payouts(payouts):
         "fecha": dates,
         "hora": times,
         #"estado": df["Descripción"],
-        "pago": df["Monto"]
+        # "pago": df["Monto"]
+        "pago": amounts
     })
+
     df = df.set_index("order_id")
 
     return df

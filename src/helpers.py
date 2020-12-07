@@ -1,5 +1,6 @@
 from os import path
 from datetime import datetime
+import pandas as pd
 
 def get_dates_and_times(column):
     '''Returns a tuple with dates and times extracted from a DF column'''
@@ -81,6 +82,49 @@ def replace_store_name(store_col):
             store_names.append(name)
 
     return store_names
+
+def get_order_ids_from_description(description_column):
+    return list(
+        map(lambda descripcion: descripcion.split("#")[1], description_column)
+    )
+
+def get_tips(closure_df):
+    '''Returns a df of tips with order_id'''
+    order_id_start_index = 36
+
+    df = rename_closure_cols(closure_df)
+
+    # Filter tips
+    tips_df = df.query('estado == "Propina para repartidores"')
+    tips_df = tips_df[['order_id', 'pago']]
+    tips_df['order_id'] = [tip[order_id_start_index:] for tip in tips_df["order_id"]]
+    tips_df = tips_df.set_index("order_id")
+
+    # Group tips by order id
+    grouped_tips_df = tips_df.groupby(tips_df.index).sum()
+
+    return grouped_tips_df
+
+def substract_tips(amounts_df, tips_df):
+    '''Returns an array of payouts without tips sorted by order_id'''
+
+    descriptions = amounts_df["Descripción"]
+    amounts = amounts_df["Monto"]
+
+    full_order_ids = get_order_ids_from_description(descriptions)
+    order_ids_first_part = [value.split('-')[0] for value in full_order_ids]
+
+    amounts_df = pd.DataFrame(
+        {"order_id": order_ids_first_part, "pago": amounts}
+    )
+    amounts_df = amounts_df.set_index("order_id")
+
+    # Substract tips from amounts by order_id
+    result = amounts_df.sub(tips_df, fill_value=0)
+    # Filter rows where amount is less than 0
+    result = result[result['pago'] >= 0]
+
+    return result['pago']
 
 def existsFile(filename):
     return path.isfile(filename)

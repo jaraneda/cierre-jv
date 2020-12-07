@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 from datetime import datetime
 import pandas as pd
-from helpers import get_first_and_last_id, reorder_final_df, existsFile
+from helpers import get_first_and_last_id, reorder_final_df, existsFile, get_tips
 from closure import get_devolutions, get_orders, get_orders, get_payouts
 
 def main():
@@ -10,11 +10,11 @@ def main():
 
     ordersFilename = 'Pedidos.csv'
     payoutsFilename = 'Cierre Juan Valdez.xlsx'
-    
+
     if not existsFile(ordersFilename):
         print('No existe el archivo ' + ordersFilename)
         return False
-          
+
     if not existsFile(payoutsFilename):
         print('No existe el archivo ' + payoutsFilename)
         return False
@@ -51,13 +51,14 @@ def main():
     )
 
     devolutions = get_devolutions(charges_df)
+    tips = get_tips(charges_df)
 
     # Filter orders to only include payed orders
     orders_df = orders_df[orders_df['ID'].between(first_id, last_id)]
 
     orders = get_orders(orders_df)
 
-    payouts = get_payouts(payouts_sheet)
+    payouts = get_payouts(payouts_sheet, tips)
 
     merged_dfs = orders.merge(payouts, how="outer",  left_index=True, right_index=True)
     merged_dfs = pd.concat([devolutions, merged_dfs])
