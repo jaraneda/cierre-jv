@@ -1,6 +1,5 @@
 from os import path
 from datetime import datetime
-import pandas as pd
 
 def get_dates_and_times(column):
     '''Returns a tuple with dates and times extracted from a DF column'''
@@ -37,13 +36,26 @@ def rename_closure_cols(closure_df):
         axis="columns"
     )
 
-
 def add_empty_cols(df):
     df["restaurant_id"] = ""
     df["ciudad"] = ""
     df["cooking time"] = ""
     df["descuento asumido partner"] = ""
     df["descuento asumido peya"] = ""
+    return df
+
+def process_charges_cols(df):
+    # Make charges' amounts negative:
+    df["pago"] = [int(v) * -1 for v in df["pago"]]
+    dates, times = get_dates_and_times(df["fecha"])
+    df["fecha"] = dates
+    df["hora"] = times
+    df["costo envío"] = ""
+    df["metodo de pago"] = ""
+    df["valor"] = ""
+    df["restaurant_name"] = replace_store_name(df["restaurant_name"])
+    df = add_empty_cols(df)
+    df = reorder_final_df(df)
     return df
 
 
@@ -88,54 +100,16 @@ def get_order_ids_from_description(description_column):
         map(lambda descripcion: descripcion.split("#")[1], description_column)
     )
 
-def get_tips(closure_df):
-    '''Returns a df of tips with order_id'''
-    order_id_start_index = 36
+def process_payouts_and_tips(payouts, tips):
+    for index, row in tips.iterrows():
+        if(index in payouts.index):
+            # print(index, row['pago'], payouts.loc[index,'pago'])
+            payouts.loc[index, 'pago'] = payouts.loc[index]['pago'] + row['pago']
 
-    df = rename_closure_cols(closure_df)
+            if(index in tips.index):
+                tips.drop(index, inplace=True)
 
-    # Filter tips
-    tips_df = df.query('estado == "Propina para repartidores"')
-    tips_df['order_id'] = [value[1:].replace("-", "") for value in tips_df["Pedido"]]
-
-    # Make devolution amounts negative:
-    tips_df["pago"] = [int(v) * -1 for v in tips_df["pago"]]
-    dates, times = get_dates_and_times(tips_df["fecha"])
-    tips_df["fecha"] = dates
-    tips_df["hora"] = times
-    tips_df["costo envío"] = ""
-    tips_df["metodo de pago"] = ""
-    tips_df["valor"] = ""
-    tips_df["restaurant_name"] = replace_store_name(tips_df["restaurant_name"])
-
-    tips_df = add_empty_cols(tips_df)
-    tips_df = reorder_final_df(tips_df)
-
-
-    tips_df = tips_df.set_index("order_id")
-  
-    return tips_df
-
-def substract_tips(amounts_df, tips_df):
-    '''Returns an array of payouts without tips sorted by order_id'''
-
-    descriptions = amounts_df["Descripción"]
-    amounts = amounts_df["Monto"]
-
-    full_order_ids = get_order_ids_from_description(descriptions)
-    order_ids_first_part = [value.split('-')[0] for value in full_order_ids]
-
-    amounts_df = pd.DataFrame(
-        {"order_id": order_ids_first_part, "pago": amounts}
-    )
-    amounts_df = amounts_df.set_index("order_id")
-
-    # Substract tips from amounts by order_id
-    result = amounts_df.sub(tips_df, fill_value=0)
-    # Filter rows where amount is less than 0
-    result = result[result['pago'] >= 0]
-
-    return result['pago']
+    return (payouts, tips)
 
 def existsFile(filename):
     return path.isfile(filename)

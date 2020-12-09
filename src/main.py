@@ -2,8 +2,8 @@
 # -*- coding: UTF-8 -*-
 from datetime import datetime
 import pandas
-from helpers import get_first_and_last_id, reorder_final_df, existsFile, get_tips
-from closure import get_devolutions, get_orders, get_orders, get_payouts
+from helpers import get_first_and_last_id, reorder_final_df, existsFile, process_payouts_and_tips
+from closure import get_devolutions, get_tips, get_orders, get_payouts
 
 def main():
     '''Reads and process Excel and CSV file from Justo app to Excel for JV'''
@@ -52,26 +52,16 @@ def main():
 
     devolutions = get_devolutions(charges_df)
     tips = get_tips(charges_df)
-    tips.to_excel("tips.xlsx")
 
     # Filter orders to only include payed orders
     orders_df = orders_df[orders_df['ID'].between(first_id, last_id)]
-
     orders = get_orders(orders_df)
 
-    payouts = get_payouts(payouts_sheet, tips)
-    payouts.to_excel("payouts.xlsx")
-
-    for index, row in tips.iterrows():
-        
-        # if exists in payouts, sum
-        if(index in payouts.index):
-            payouts.loc[index, 'pago'] = payouts.loc[index]['pago'] + row['pago']
-            tips.drop(index, inplace=True)
+    payouts = get_payouts(payouts_sheet)
+    payouts, tips = process_payouts_and_tips(payouts, tips)
 
     merged_dfs = orders.merge(payouts, how="outer",  left_index=True, right_index=True)
-    merged_dfs = pandas.concat([devolutions, merged_dfs])
-    merged_dfs = pandas.concat([tips, merged_dfs])
+    merged_dfs = pandas.concat([tips, devolutions, merged_dfs])
 
     merged_dfs.to_excel(datetime.today().strftime('%Y-%m-%d') + "-JUSTO.xlsx")
 
