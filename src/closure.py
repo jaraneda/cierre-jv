@@ -101,7 +101,7 @@ def get_payouts(payouts, tips):
     df = payouts
     dates, times = helpers.get_dates_and_times(df["Fecha"])
     order_ids = helpers.get_order_ids_from_description(df["Descripción"])
-    amounts = helpers.substract_tips(df, tips)
+    #amounts = helpers.substract_tips(df, tips)
 
     df = pd.DataFrame({
         "order_id": [value.replace("-", "") for value in order_ids],
@@ -109,8 +109,8 @@ def get_payouts(payouts, tips):
         "fecha": dates,
         "hora": times,
         #"estado": df["Descripción"],
-        # "pago": df["Monto"]
-        "pago": amounts
+         "pago": df["Monto"]
+        #"pago": amounts
     })
 
     df = df.set_index("order_id")

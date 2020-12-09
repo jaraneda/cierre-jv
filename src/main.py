@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 from datetime import datetime
-import pandas as pd
+import pandas
 from helpers import get_first_and_last_id, reorder_final_df, existsFile, get_tips
 from closure import get_devolutions, get_orders, get_orders, get_payouts
 
@@ -20,11 +20,11 @@ def main():
         return False
 
     # Read Excel or CSV file for charges file
-    charges_df = pd.read_excel(
+    charges_df = pandas.read_excel(
         payoutsFilename, sheet_name="Cobros", parse_dates=True,
-        usecols=["Descripción", "Tipo", "Total", "Local", "Fecha"])
+        usecols=["Descripción", "Pedido", "Tipo", "Total", "Local", "Fecha"])
 
-    payouts_sheet = pd.read_excel(
+    payouts_sheet = pandas.read_excel(
         payoutsFilename, sheet_name="Pagos", parse_dates=True,
         usecols=["Descripción", "Monto", "Local", "Fecha"])
 
@@ -42,7 +42,7 @@ def main():
         "Precio despacho"
     ]
 
-    orders_df = pd.read_csv(
+    orders_df = pandas.read_csv(
         ordersFilename,
         encoding="utf-8",
         usecols=cols_to_use,
@@ -52,6 +52,7 @@ def main():
 
     devolutions = get_devolutions(charges_df)
     tips = get_tips(charges_df)
+    tips.to_excel("tips.xlsx")
 
     # Filter orders to only include payed orders
     orders_df = orders_df[orders_df['ID'].between(first_id, last_id)]
@@ -59,9 +60,19 @@ def main():
     orders = get_orders(orders_df)
 
     payouts = get_payouts(payouts_sheet, tips)
+    payouts.to_excel("payouts.xlsx")
+
+    for index, row in tips.iterrows():
+        
+        # if exists in payouts, sum
+        if(index in payouts.index):
+            payouts.loc[index, 'pago'] = payouts.loc[index]['pago'] + row['pago']
+            tips.drop(index, inplace=True)
 
     merged_dfs = orders.merge(payouts, how="outer",  left_index=True, right_index=True)
-    merged_dfs = pd.concat([devolutions, merged_dfs])
+    merged_dfs = pandas.concat([devolutions, merged_dfs])
+    merged_dfs = pandas.concat([tips, merged_dfs])
+
     merged_dfs.to_excel(datetime.today().strftime('%Y-%m-%d') + "-JUSTO.xlsx")
 
 

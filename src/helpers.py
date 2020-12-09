@@ -96,14 +96,25 @@ def get_tips(closure_df):
 
     # Filter tips
     tips_df = df.query('estado == "Propina para repartidores"')
-    tips_df = tips_df[['order_id', 'pago']]
-    tips_df['order_id'] = [tip[order_id_start_index:] for tip in tips_df["order_id"]]
+    tips_df['order_id'] = [value[1:].replace("-", "") for value in tips_df["Pedido"]]
+
+    # Make devolution amounts negative:
+    tips_df["pago"] = [int(v) * -1 for v in tips_df["pago"]]
+    dates, times = get_dates_and_times(tips_df["fecha"])
+    tips_df["fecha"] = dates
+    tips_df["hora"] = times
+    tips_df["costo envío"] = ""
+    tips_df["metodo de pago"] = ""
+    tips_df["valor"] = ""
+    tips_df["restaurant_name"] = replace_store_name(tips_df["restaurant_name"])
+
+    tips_df = add_empty_cols(tips_df)
+    tips_df = reorder_final_df(tips_df)
+
+
     tips_df = tips_df.set_index("order_id")
-
-    # Group tips by order id
-    grouped_tips_df = tips_df.groupby(tips_df.index).sum()
-
-    return grouped_tips_df
+  
+    return tips_df
 
 def substract_tips(amounts_df, tips_df):
     '''Returns an array of payouts without tips sorted by order_id'''
