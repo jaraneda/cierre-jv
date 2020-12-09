@@ -7,7 +7,7 @@ def get_devolutions(closure_df):
     df = helpers.rename_closure_cols(closure_df)
 
     # Filter devolutions
-    devolutions = df.query('estado == "Devoluciones a clientes"')
+    devolutions = df.query('estado == "Devoluciones a clientes"').copy()
     # Get order_id
     devolutions["order_id"] = [v[22:]
                                if "Devolución de pedido" in v else v[36:]
@@ -24,10 +24,10 @@ def get_tips(closure_df):
     df = helpers.rename_closure_cols(closure_df)
 
     # Filter tips
-    tips_df = df.query('estado == "Propina para repartidores"')
+    tips_df = df.query('estado == "Propina para repartidores"').copy()
     tips_df['order_id'] = [value[1:].replace("-", "") for value in tips_df["Pedido"]]
     tips_df = helpers.process_charges_cols(tips_df)
-    
+
     tips_df = tips_df.set_index("order_id")
 
     return tips_df

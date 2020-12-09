@@ -45,8 +45,7 @@ def add_empty_cols(df):
     return df
 
 def process_charges_cols(df):
-    # Make charges' amounts negative:
-    df["pago"] = [int(v) * -1 for v in df["pago"]]
+    df["pago"] = [int(v) * -1 for v in df["pago"]] # Make charges' amounts negative
     dates, times = get_dates_and_times(df["fecha"])
     df["fecha"] = dates
     df["hora"] = times
@@ -103,12 +102,8 @@ def get_order_ids_from_description(description_column):
 def process_payouts_and_tips(payouts, tips):
     for index, row in tips.iterrows():
         if(index in payouts.index):
-            # print(index, row['pago'], payouts.loc[index,'pago'])
             payouts.loc[index, 'pago'] = payouts.loc[index]['pago'] + row['pago']
-
-            if(index in tips.index):
-                tips.drop(index, inplace=True)
-
+            if(index in tips.index): tips.drop(index, inplace=True)
     return (payouts, tips)
 
 def existsFile(filename):
