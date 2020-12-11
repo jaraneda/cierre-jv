@@ -7,29 +7,30 @@ def get_devolutions(closure_df):
     df = helpers.rename_closure_cols(closure_df)
 
     # Filter devolutions
-    devolutions = df.query(
-        'estado == "Devoluciones a clientes" or estado == "Propina para repartidores"')
-
+    devolutions = df.query('estado == "Devoluciones a clientes"').copy()
     # Get order_id
     devolutions["order_id"] = [v[22:]
                                if "Devolución de pedido" in v else v[36:]
                                for v in devolutions["order_id"]]
-    # Make devolution amounts negative:
-    devolutions["pago"] = [int(v) * -1 for v in devolutions["pago"]]
-    dates, times = helpers.get_dates_and_times(devolutions["fecha"])
-    devolutions["fecha"] = dates
-    devolutions["hora"] = times
-    devolutions["costo envío"] = ""
-    devolutions["metodo de pago"] = ""
-    devolutions["valor"] = ""
-    devolutions["restaurant_name"] = helpers.replace_store_name(devolutions["restaurant_name"])
 
-    devolutions = helpers.add_empty_cols(devolutions)
-    devolutions = helpers.reorder_final_df(devolutions)
-
+    devolutions = helpers.process_charges_cols(devolutions)
     devolutions = devolutions.set_index("order_id")
+
     return devolutions
 
+def get_tips(closure_df):
+    '''Creates and returns a new DF containing tips'''
+
+    df = helpers.rename_closure_cols(closure_df)
+
+    # Filter tips
+    tips_df = df.query('estado == "Propina para repartidores"').copy()
+    tips_df['order_id'] = [value[1:].replace("-", "") for value in tips_df["Pedido"]]
+    tips_df = helpers.process_charges_cols(tips_df)
+
+    tips_df = tips_df.set_index("order_id")
+
+    return tips_df
 
 def get_payments(closure_df):
     '''Creates and returns a new DF with the Payments (Abonos) data'''
@@ -38,9 +39,7 @@ def get_payments(closure_df):
         engine='python'
     )
     dates, times = helpers.get_dates_and_times(df["Fecha"])
-    order_ids = list(
-        map(lambda descripcion: descripcion.split("#")[1], df["Descripción"])
-    )
+    order_ids = helpers.get_order_ids_from_description(df["Descripción"])
 
     empty_list = ["" for i in order_ids]
     df = pd.DataFrame({
@@ -77,7 +76,7 @@ def get_orders(df):
         },
         axis="columns"
     )
-    
+
     # CALCULAR VALOR A PAGAR: PAGO CON PROPINA - PROPINAS - DEVOLUCIONES
     payment_methods = []
 
@@ -103,9 +102,7 @@ def get_payouts(payouts):
     '''Creates and returns a new DF with the Payments (Abonos) data'''
     df = payouts
     dates, times = helpers.get_dates_and_times(df["Fecha"])
-    order_ids = list(
-        map(lambda descripcion: descripcion.split("#")[1], df["Descripción"])
-    )
+    order_ids = helpers.get_order_ids_from_description(df["Descripción"])
 
     df = pd.DataFrame({
         "order_id": [value.replace("-", "") for value in order_ids],
@@ -113,8 +110,8 @@ def get_payouts(payouts):
         "fecha": dates,
         "hora": times,
         #"estado": df["Descripción"],
-        "pago": df["Monto"]
+         "pago": df["Monto"]
     })
-    df = df.set_index("order_id")
 
+    df = df.set_index("order_id")
     return df

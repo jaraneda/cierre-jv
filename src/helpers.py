@@ -36,13 +36,25 @@ def rename_closure_cols(closure_df):
         axis="columns"
     )
 
-
 def add_empty_cols(df):
     df["restaurant_id"] = ""
     df["ciudad"] = ""
     df["cooking time"] = ""
     df["descuento asumido partner"] = ""
     df["descuento asumido peya"] = ""
+    return df
+
+def process_charges_cols(df):
+    df["pago"] = [int(v) * -1 for v in df["pago"]] # Make charges' amounts negative
+    dates, times = get_dates_and_times(df["fecha"])
+    df["fecha"] = dates
+    df["hora"] = times
+    df["costo envío"] = ""
+    df["metodo de pago"] = ""
+    df["valor"] = ""
+    df["restaurant_name"] = replace_store_name(df["restaurant_name"])
+    df = add_empty_cols(df)
+    df = reorder_final_df(df)
     return df
 
 
@@ -81,6 +93,18 @@ def replace_store_name(store_col):
             store_names.append(name)
 
     return store_names
+
+def get_order_ids_from_description(description_column):
+    return list(
+        map(lambda descripcion: descripcion.split("#")[1], description_column)
+    )
+
+def process_payouts_and_tips(payouts, tips):
+    for index, row in tips.iterrows():
+        if(index in payouts.index):
+            payouts.loc[index, 'pago'] = payouts.loc[index]['pago'] + row['pago']
+            if(index in tips.index): tips.drop(index, inplace=True)
+    return (payouts, tips)
 
 def existsFile(filename):
     return path.isfile(filename)

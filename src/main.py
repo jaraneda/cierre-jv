@@ -1,30 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 from datetime import datetime
-import pandas as pd
-from helpers import get_first_and_last_id, reorder_final_df, existsFile
-from closure import get_devolutions, get_orders, get_orders, get_payouts
+import pandas
+from helpers import get_first_and_last_id, reorder_final_df, existsFile, process_payouts_and_tips
+from closure import get_devolutions, get_tips, get_orders, get_payouts
 
 def main():
     '''Reads and process Excel and CSV file from Justo app to Excel for JV'''
 
     ordersFilename = 'Pedidos.csv'
     payoutsFilename = 'Cierre Juan Valdez.xlsx'
-    
+
     if not existsFile(ordersFilename):
         print('No existe el archivo ' + ordersFilename)
         return False
-          
+
     if not existsFile(payoutsFilename):
         print('No existe el archivo ' + payoutsFilename)
         return False
 
     # Read Excel or CSV file for charges file
-    charges_df = pd.read_excel(
+    charges_df = pandas.read_excel(
         payoutsFilename, sheet_name="Cobros", parse_dates=True,
-        usecols=["Descripción", "Tipo", "Total", "Local", "Fecha"])
+        usecols=["Descripción", "Pedido", "Tipo", "Total", "Local", "Fecha"])
 
-    payouts_sheet = pd.read_excel(
+    payouts_sheet = pandas.read_excel(
         payoutsFilename, sheet_name="Pagos", parse_dates=True,
         usecols=["Descripción", "Monto", "Local", "Fecha"])
 
@@ -42,7 +42,7 @@ def main():
         "Precio despacho"
     ]
 
-    orders_df = pd.read_csv(
+    orders_df = pandas.read_csv(
         ordersFilename,
         encoding="utf-8",
         usecols=cols_to_use,
@@ -51,16 +51,18 @@ def main():
     )
 
     devolutions = get_devolutions(charges_df)
+    tips = get_tips(charges_df)
 
     # Filter orders to only include payed orders
     orders_df = orders_df[orders_df['ID'].between(first_id, last_id)]
-
     orders = get_orders(orders_df)
 
     payouts = get_payouts(payouts_sheet)
+    payouts, tips = process_payouts_and_tips(payouts, tips)
 
     merged_dfs = orders.merge(payouts, how="outer",  left_index=True, right_index=True)
-    merged_dfs = pd.concat([devolutions, merged_dfs])
+    merged_dfs = pandas.concat([tips, devolutions, merged_dfs])
+
     merged_dfs.to_excel(datetime.today().strftime('%Y-%m-%d') + "-JUSTO.xlsx")
 
 
