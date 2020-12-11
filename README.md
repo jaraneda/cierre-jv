@@ -82,5 +82,6 @@ TODO...
 
 Si a pesar de todo resulta algún error y no lo puedes solucionar, contacta a:
 
+* Raimundo Carmona <raimundo.carmona@getjusto.com>
 * Sebastián Iturra <sebastian.iturra@getjusto.com>
 * Joaquin Gumuccio <...>
