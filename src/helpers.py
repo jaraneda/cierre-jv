@@ -52,7 +52,7 @@ def process_charges_cols(df):
     df["costo envío"] = ""
     df["metodo de pago"] = ""
     df["valor"] = ""
-    df["restaurant_name"] = replace_store_name(df["restaurant_name"])
+    df["restaurant_name"] = replace_store_name(df["restaurant_name"], dates)
     df = add_empty_cols(df)
     df = reorder_final_df(df)
     return df
@@ -79,15 +79,15 @@ def reorder_final_df(df):
     ]
 
 
-def replace_store_name(store_col):
+def replace_store_name(store_col, dates_col):
     '''Returns an array with replaced store name'''
 
     store_names = []
 
-    for name in store_col:
-        if "Regiones" in name:
+    for idx, name in enumerate(store_col):
+        if "Regiones" in name and datetime.strptime(dates_col[idx], "%Y-%m-%d") < datetime.strptime("2020-12-15", "%Y-%m-%d"):
             store_names.append("Alonso de Cordova")
-        elif "Chicureo" in name or "Food Truck" in name:
+        elif "Regiones" in name or "Chicureo" in name or "Food Truck" in name:
             store_names.append("Rosario Norte")
         else:
             store_names.append(name)

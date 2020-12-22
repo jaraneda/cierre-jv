@@ -1,4 +1,4 @@
-import pandas as pd
+import pandas
 import helpers
 
 def get_devolutions(closure_df):
@@ -42,11 +42,11 @@ def get_payments(closure_df):
     order_ids = helpers.get_order_ids_from_description(df["Descripción"])
 
     empty_list = ["" for i in order_ids]
-    df = pd.DataFrame({
+    df = pandas.DataFrame({
         "order_id": order_ids,
         "restaurant_id": empty_list,
         "ciudad": empty_list,
-        "restaurant_name": helpers.replace_store_name(df["Local"]),
+        "restaurant_name": helpers.replace_store_name(df["Local"], dates),
         "fecha": dates,
         "hora": times,
         "estado": df["Descripción"],
@@ -104,9 +104,9 @@ def get_payouts(payouts):
     dates, times = helpers.get_dates_and_times(df["Fecha"])
     order_ids = helpers.get_order_ids_from_description(df["Descripción"])
 
-    df = pd.DataFrame({
+    df = pandas.DataFrame({
         "order_id": [value.replace("-", "") for value in order_ids],
-        "restaurant_name": helpers.replace_store_name(df["Local"]),
+        "restaurant_name": helpers.replace_store_name(df["Local"], dates),
         "fecha": dates,
         "hora": times,
         #"estado": df["Descripción"],
