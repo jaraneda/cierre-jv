@@ -39,7 +39,8 @@ def main():
         "Pago",
         "Estado del pago",
         "Monto en productos",
-        "Precio despacho"
+        "Precio despacho",
+        "Fecha del pedido"
     ]
 
     orders_df = pandas.read_csv(

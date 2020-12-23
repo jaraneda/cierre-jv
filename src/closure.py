@@ -1,5 +1,6 @@
 import pandas
 import helpers
+from datetime import datetime, time
 
 def get_devolutions(closure_df):
     '''Creates and returns a new DF containing devolutions'''
@@ -76,8 +77,10 @@ def get_orders(df):
         },
         axis="columns"
     )
+    df = helpers.filter_older_orders_out(df)
 
-    # CALCULAR VALOR A PAGAR: PAGO CON PROPINA - PROPINAS - DEVOLUCIONES
+    # TODO: CALCULAR VALOR A PAGAR: PAGO CON PROPINA - PROPINAS - DEVOLUCIONES
+    # En la función process_payouts_and_tips se ejecuta PAGO CON PROPINA - PROPINAS
     payment_methods = []
 
     for label, values in df.items():
