@@ -108,3 +108,16 @@ def process_payouts_and_tips(payouts, tips):
 
 def existsFile(filename):
     return path.isfile(filename)
+
+def filter_older_orders_out(df):
+    dates, times = get_dates_and_times(df['Fecha del pedido'])
+    df['Dates'] = dates
+    df['Times'] = times
+
+    minDate = min(dates)
+    df = df.loc[(df['Dates'] != minDate) | ((df['Dates'] == minDate) & (df['Times'] > time(4,0,0)))]
+
+    df = df.drop('Fecha del pedido', 1)
+    df = df.drop('Dates', 1)
+    df = df.drop('Times', 1)
+    return df
