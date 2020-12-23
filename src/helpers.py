@@ -1,5 +1,5 @@
 from os import path
-from datetime import datetime
+from datetime import datetime, time
 
 def get_dates_and_times(column):
     '''Returns a tuple with dates and times extracted from a DF column'''
@@ -106,7 +106,7 @@ def process_payouts_and_tips(payouts, tips):
             if(index in tips.index): tips.drop(index, inplace=True)
     return (payouts, tips)
 
-def existsFile(filename):
+def exists_file(filename):
     return path.isfile(filename)
 
 def filter_older_orders_out(df):
@@ -114,10 +114,17 @@ def filter_older_orders_out(df):
     df['Dates'] = dates
     df['Times'] = times
 
-    minDate = min(dates)
-    df = df.loc[(df['Dates'] != minDate) | ((df['Dates'] == minDate) & (df['Times'] > time(4,0,0)))]
+    min_date = min(dates)
+    df = df.loc[(df['Dates'] != min_date) | ((df['Dates'] == min_date) & (df['Times'] > time(4,0,0)))]
 
     df = df.drop('Fecha del pedido', 1)
     df = df.drop('Dates', 1)
     df = df.drop('Times', 1)
     return df
+
+def remove_amountless_rows(df):
+    indexes_to_remove = df.index[(df['pago'].isnull())].tolist()
+    print("Se quitarán las siguientes ordenes del archivo final porque no tienen pago:")
+    for index in indexes_to_remove:
+        print(index)
+    return df.loc[(df['pago'].notnull())]
