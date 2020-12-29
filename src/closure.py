@@ -1,6 +1,6 @@
 import pandas
 import helpers
-from datetime import datetime, time
+from datetime import datetime
 
 def get_devolutions(closure_df):
     '''Creates and returns a new DF containing devolutions'''

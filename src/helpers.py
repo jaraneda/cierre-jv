@@ -1,5 +1,5 @@
 from os import path
-from datetime import datetime
+from datetime import datetime, time
 
 def get_dates_and_times(column):
     '''Returns a tuple with dates and times extracted from a DF column'''
