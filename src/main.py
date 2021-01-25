@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 from datetime import datetime
 import pandas
-from helpers import get_first_and_last_id, reorder_final_df, existsFile, process_payouts_and_tips
+import helpers
 from closure import get_devolutions, get_tips, get_orders, get_payouts
 
 def main():
@@ -11,11 +11,11 @@ def main():
     ordersFilename = 'Pedidos.csv'
     payoutsFilename = 'Cierre Juan Valdez.xlsx'
 
-    if not existsFile(ordersFilename):
+    if not helpers.exists_file(ordersFilename):
         print('No existe el archivo ' + ordersFilename)
         return False
 
-    if not existsFile(payoutsFilename):
+    if not helpers.exists_file(payoutsFilename):
         print('No existe el archivo ' + payoutsFilename)
         return False
 
@@ -29,7 +29,7 @@ def main():
         usecols=["Descripción", "Monto", "Local", "Fecha"])
 
     # Get the first and last order id from payments sheet
-    first_id, last_id = get_first_and_last_id(payouts_sheet)
+    first_id, last_id = helpers.get_first_and_last_id(payouts_sheet)
 
     print("CHARGES COUNT:", len(charges_df))
 
@@ -59,10 +59,11 @@ def main():
     orders = get_orders(orders_df)
 
     payouts = get_payouts(payouts_sheet)
-    payouts, tips = process_payouts_and_tips(payouts, tips)
+    payouts, tips = helpers.process_payouts_and_tips(payouts, tips)
 
     merged_dfs = orders.merge(payouts, how="outer",  left_index=True, right_index=True)
     merged_dfs = pandas.concat([tips, devolutions, merged_dfs])
+    merged_dfs = helpers.remove_amountless_rows(merged_dfs)
 
     merged_dfs.to_excel(datetime.today().strftime('%Y-%m-%d') + "-JUSTO.xlsx")
 
