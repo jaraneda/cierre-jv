@@ -83,11 +83,12 @@ def replace_store_name(store_col, dates_col):
     '''Returns an array with replaced store name'''
 
     store_names = []
+    rosario_names = ["Regiones", "Chicureo", "Food Truck", "Maintencillo"]
 
     for idx, name in enumerate(store_col):
         if "Regiones" in name and datetime.strptime(dates_col[idx], "%Y-%m-%d") < datetime.strptime("2020-12-15", "%Y-%m-%d"):
             store_names.append("Alonso de Cordova")
-        elif "Regiones" in name or "Chicureo" in name or "Food Truck" in name:
+        elif any(rosario_name in name for rosario_name in rosario_names):
             store_names.append("Rosario Norte")
         else:
             store_names.append(name)
