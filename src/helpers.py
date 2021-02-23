@@ -83,7 +83,7 @@ def replace_store_name(store_col, dates_col):
     '''Returns an array with replaced store name'''
 
     store_names = []
-    rosario_names = ["Regiones", "Chicureo", "Food Truck", "Maintencillo"]
+    rosario_names = ["Regiones", "Chicureo", "Food Truck", "Maitencillo"]
 
     for idx, name in enumerate(store_col):
         if "Regiones" in name and datetime.strptime(dates_col[idx], "%Y-%m-%d") < datetime.strptime("2020-12-15", "%Y-%m-%d"):
