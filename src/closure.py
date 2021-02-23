@@ -10,8 +10,7 @@ def get_devolutions(closure_df):
     # Filter devolutions
     devolutions = df.query('estado == "Devoluciones a clientes"').copy()
     # Get order_id
-    devolutions["order_id"] = [v[22:]
-                               if "Devolución de pedido" in v else v[36:]
+    devolutions["order_id"] = [v[22:v.find(' ',22)] if "Devolución de pedido" in v else v[36:]
                                for v in devolutions["order_id"]]
 
     devolutions = helpers.process_charges_cols(devolutions)

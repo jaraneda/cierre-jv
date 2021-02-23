@@ -88,6 +88,8 @@ def replace_store_name(store_col, dates_col):
     for idx, name in enumerate(store_col):
         if "Regiones" in name and datetime.strptime(dates_col[idx], "%Y-%m-%d") < datetime.strptime("2020-12-15", "%Y-%m-%d"):
             store_names.append("Alonso de Cordova")
+        elif "Regiones" in name and datetime.strptime(dates_col[idx], "%Y-%m-%d") > datetime.strptime("2021-01-31", "%Y-%m-%d"):
+            store_names.append('ECOMMERCE')
         elif any(rosario_name in name for rosario_name in rosario_names):
             store_names.append("Rosario Norte")
         else:
@@ -125,6 +127,8 @@ def filter_older_orders_out(df):
 
 def remove_amountless_rows(df):
     indexes_to_remove = df.index[(df['pago'].isnull())].tolist()
+    if len(indexes_to_remove) == 0: return df
+
     print("Se quitarán las siguientes ordenes del archivo final porque no tienen pago:")
     for index in indexes_to_remove:
         print(index)
